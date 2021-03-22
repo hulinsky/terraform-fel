@@ -6,6 +6,12 @@ provider "vsphere" {
   allow_unverified_ssl = true
 }
 
+locals {
+  #meta_data = templatefile("./metadata.yaml", { hostname = "" })
+  meta_data = templatefile("${path.module}/cloud-init/metadata.tpl", { })
+  user_data = templatefile("${path.module}/cloud-init/userdata.tpl", { })
+}
+
 resource "vsphere_virtual_machine" "vm" {
   name = "terraform-test"
   # resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
@@ -46,6 +52,11 @@ resource "vsphere_virtual_machine" "vm" {
     }
   }
 
-
+  extra_config = {
+    "guestinfo.metadata"          = base64encode(var.meta_data)
+    "guestinfo.metadata.encoding" = "base64"
+    "guestinfo.userdata"          = base64encode(var.user_data)
+    "guestinfo.userdata.encoding" = "base64"
+  }
 
 }

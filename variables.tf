@@ -55,3 +55,13 @@ variable "vm_hostname" {
   default     = "ubuntu"
   description = "The virtual machine name."
 }
+
+variable "user_data" {
+  type = string
+  default = ""
+}
+
+variable "meta_data" {
+  type = string
+  default = ""
+}
