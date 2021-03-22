@@ -6,35 +6,6 @@ provider "vsphere" {
   allow_unverified_ssl = true
 }
 
-data "vsphere_datacenter" "dc" {
-  name = var.vsphere_datacenter
-}
-
-data "vsphere_datastore" "datastore" {
-  name          = var.vsphere_datastore
-  datacenter_id = data.vsphere_datacenter.dc.id
-}
-
-data "vsphere_compute_cluster" "cluster" {
-  name          = var.vsphere_compute_cluster
-  datacenter_id = data.vsphere_datacenter.dc.id
-}
-
-data "vsphere_network" "network" {
-  name          = var.vsphere_network
-  datacenter_id = data.vsphere_datacenter.dc.id
-}
-
-data "vsphere_resource_pool" "pool" {
-  name          = var.vsphere_resource_pool
-  datacenter_id = data.vsphere_datacenter.dc.id
-}
-
-data "vsphere_virtual_machine" "template" {
-  name          = var.vm_template_name
-  datacenter_id = data.vsphere_datacenter.dc.id
-}
-
 resource "vsphere_virtual_machine" "vm" {
   name = "terraform-test"
   # resource_pool_id = data.vsphere_compute_cluster.cluster.resource_pool_id
@@ -43,14 +14,38 @@ resource "vsphere_virtual_machine" "vm" {
 
   num_cpus = 2
   memory   = 1024
-  guest_id = "ubuntu64Guest"
+  guest_id = data.vsphere_virtual_machine.template.guest_id
+  scsi_type = data.vsphere_virtual_machine.template.scsi_type
 
   network_interface {
     network_id = data.vsphere_network.network.id
+    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+  }
+
+  cdrom {
+    client_device = true
   }
 
   disk {
     label = "disk0"
     size  = 20
+    eagerly_scrub    = data.vsphere_virtual_machine.template.disks.0.eagerly_scrub
+    thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
   }
+
+  clone {
+    template_uuid = data.vsphere_virtual_machine.template.id
+  }
+
+  vapp {
+    properties ={
+      hostname = var.vm_hostname
+      instance-id = var.vm_hostname
+      password = "ubnt"
+      #user-data = base64encode(file("${path.module}/cloudinit/kickstart.yaml"))
+    }
+  }
+
+
+
 }
